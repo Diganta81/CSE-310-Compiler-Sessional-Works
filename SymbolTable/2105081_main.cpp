@@ -10,7 +10,9 @@ int main()
     cin >> n;
     cout<<n<<endl;
     getchar();
-    SymbolTable *symbolTable = new SymbolTable(new ScopeTable(n, NULL));
+    int i=1;
+    SymbolTable *symbolTable = new SymbolTable(new ScopeTable(n,i,NULL));
+    i++;
     string command;
     int count = 1;
     while(true){
@@ -92,7 +94,8 @@ int main()
                 cout<<"Number of parameters mismatch for the command S"<<endl;
             }
             else{
-                symbolTable->enterScope(n);
+                symbolTable->enterScope(n,i);
+                i++;
             }
         }
         else if(arg[0]=="E"){

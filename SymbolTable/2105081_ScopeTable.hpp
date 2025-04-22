@@ -8,13 +8,13 @@ using namespace std;
 class ScopeTable
 {
     int bucketSize;
-    string id;
+    int id;
     SymbolInfo **hashTable;
     ScopeTable *parent;
     int numOfChildren;
     public:
 
-        ScopeTable(int n,ScopeTable *Parent){
+        ScopeTable(int n,int i,ScopeTable *Parent){
             this->bucketSize=n;
             hashTable=new SymbolInfo*[n];
             for(int i=0;i<n;i++){
@@ -22,7 +22,7 @@ class ScopeTable
             }
             if(Parent==NULL){
                 parent=NULL;
-                id="1";
+                id=i;
                 numOfChildren=0;
             }
             else{
@@ -30,16 +30,16 @@ class ScopeTable
                     Parent->numOfChildren++;
                 }
                 parent=Parent;
-                this->id=parent->id+"."+to_string(parent->numOfChildren);
+                this->id=i;
             }
             cout<<"ScopeTable "<<id<<" created"<<endl;
         }
 
-        void setId(string id){
+        void setId(int id){
             this->id=id;
         }
 
-        string getId(){
+        int getId(){
             return this->id;
         }
 
@@ -144,9 +144,12 @@ class ScopeTable
             return false;
         }
 
-        void print(){
+        void print(int k){ 
             for(int i=0;i<bucketSize;i++){
                 SymbolInfo* curr=hashTable[i];
+                for(int j=0;j<k;j++){
+                    cout<<"\t";
+                }
                 cout<<to_string(i+1)+"--> ";
                 while(curr!=NULL){
                     cout<<"<"<<curr->getName()<<","<<curr->getType()<<">";

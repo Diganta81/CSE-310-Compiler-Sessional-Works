@@ -20,8 +20,8 @@ class SymbolTable
         }
     }
 
-    void enterScope(int n){
-        current=new ScopeTable(n,current);
+    void enterScope(int n,int i){
+        current=new ScopeTable(n,i,current);
     }
 
     void exitScope(){
@@ -61,15 +61,21 @@ class SymbolTable
         return temp->LookUp(name);
     }
 
-    void printCurrentScopeTable(){
-        current->print();
+    void printCurrentScopeTable(int i=0){
+        current->print(i);
     }
 
     void printAllScopeTable(){
         ScopeTable* temp=current;
+        int i=0;
         while(temp!=NULL){
-            temp->print();
+            for(int j=0;j<i;j++){
+                cout<<"\t";
+            }
+            cout<<"ScopeTable # "<<temp->getId()<<endl;
+            temp->print(i);
             temp=temp->getParent();
+            i++;
         }
     }
 };
