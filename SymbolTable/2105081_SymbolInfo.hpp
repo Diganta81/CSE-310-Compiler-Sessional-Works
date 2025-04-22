@@ -15,9 +15,7 @@ class SymbolInfo
             this->next=next;
         }
         ~SymbolInfo(){
-            if(this->next!=NULL){
-                delete this->next;
-            }
+            delete next;
         }
         void setName(string name){
             this->name=name;

@@ -14,9 +14,9 @@ class SymbolTable
 
     ~SymbolTable(){
         while(current!=NULL){
-            ScopeTable* temp=current->getParent();
-            delete current;
-            current=temp;
+            ScopeTable* temp=current;
+            current=current->getParent();
+            delete temp;
         }
     }
 
@@ -26,9 +26,13 @@ class SymbolTable
 
     void exitScope(){
         if(current->getParent()!=NULL){
-            ScopeTable* temp=current->getParent();
+            cout<<"1"<<endl;
+            ScopeTable* temp=current;
+            cout<<"2"<<endl;
+            current=current->getParent();
+            cout<<"3"<<endl;
             delete temp;
-            current=temp;
+            cout<<"4"<<endl;
         }
         else{
             cout<<"can not be deleted"<<endl;
@@ -49,7 +53,7 @@ class SymbolTable
             if(temp->find(name)){
                 return temp->LookUp(name);
             }
-            temp=current->getParent();
+            temp=temp->getParent();
         }
         if(!temp->find(name)){
             cout<<"Not found";

@@ -79,7 +79,7 @@ int main()
                 if(arg[1]=="C"){
                     symbolTable->printCurrentScopeTable();
                 }
-                else if(arg[2]=="A"){
+                else if(arg[1]=="A"){
                     symbolTable->printAllScopeTable();
                 }
                 else{

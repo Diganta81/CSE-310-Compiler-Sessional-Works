@@ -32,6 +32,7 @@ class ScopeTable
                 parent=Parent;
                 this->id=parent->id+"."+to_string(parent->numOfChildren);
             }
+            cout<<"ScopeTable "<<id<<" created"<<endl;
         }
 
         void setId(string id){
@@ -99,9 +100,12 @@ class ScopeTable
         }
 
         SymbolInfo* LookUp(string Name){
+            cout<<Name<<" L 0"<<endl;
             int index=getBucketNum(Name);
+            cout<<"L 1"<<endl;
             int num=0;
             SymbolInfo *curr=hashTable[index];
+            cout<<"L 2"<<endl;
             while(curr!=NULL){
                 num++;
                 if(curr->getName()==Name){
@@ -110,6 +114,8 @@ class ScopeTable
                 }
                 curr=curr->next;
             }
+            cout<<"NOT found"<<endl;
+            return NULL;
         }
 
         bool deleteSymbol(string Name){
@@ -120,8 +126,9 @@ class ScopeTable
                 if(curr->getName()==Name){
                     if(prev==NULL){
                         SymbolInfo *temp=curr;
-                        curr=curr->next;
+                        hashTable[index]=curr->next;
                         delete temp;
+                        cout<<"Dleleted"<<endl;
                         return true;
                     }
                     else{
@@ -133,15 +140,16 @@ class ScopeTable
                 prev=curr;
                 curr=curr->next;
             }
+            cout<<"Not FOund"<<endl;
             return false;
         }
 
         void print(){
             for(int i=0;i<bucketSize;i++){
                 SymbolInfo* curr=hashTable[i];
-                cout<<to_string(i+1)+" : ";
+                cout<<to_string(i+1)+"--> ";
                 while(curr!=NULL){
-                    cout<<"--"<<curr->getName();
+                    cout<<"<"<<curr->getName()<<","<<curr->getType()<<">";
                     curr=curr->next;
                 }
                 cout<<endl;
@@ -150,7 +158,7 @@ class ScopeTable
 
         ~ScopeTable(){
             for(int i=0;i<bucketSize;i++){
-                delete[] hashTable[i];
+                delete hashTable[i];
             }
             delete[] hashTable;
         }
