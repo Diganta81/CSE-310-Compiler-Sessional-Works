@@ -27,6 +27,7 @@ class SymbolInfo
         }
         void setNext(SymbolInfo* next){
             this->next=next;
+            cout<<"debug 3"<<endl;
         }
         string getName(){
             return this->name;

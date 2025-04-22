@@ -4,10 +4,11 @@
 
 int main()
 {
-    freopen("input.txt", "r", stdin);
-    freopen("output.txt", "w", stdout);
+    freopen("sample_input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
     int n;
     cin >> n;
+    cout<<n<<endl;
     getchar();
     SymbolTable *symbolTable = new SymbolTable(new ScopeTable(n, NULL));
     string command;

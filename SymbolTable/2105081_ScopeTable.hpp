@@ -72,19 +72,30 @@ class ScopeTable
         }
 
         bool Insert(string Name,string type){
-            int index=getBucketNum(Name);
-            SymbolInfo *curr=hashTable[index];
-            int num=0;
-            while(curr!=NULL){
-                num++;
-                if(curr->getName()==Name){
-                    cout<<"found at "+to_string(index)+" position: "+to_string(num);
-                    return false;
+            SymbolInfo *findSymbol=LookUp(Name);
+            cout<<"1"<<endl;
+            if(findSymbol==NULL){
+                cout<<"2"<<endl;
+                int index=getBucketNum(Name);
+                int pos=1;
+                if(hashTable[index]==NULL){
+                    cout<<"3"<<endl;
+                    hashTable[index]=new SymbolInfo(Name,type);
+                    cout<<"inserted at pos: "<<pos<<endl;
+                    return true;
                 }
-                curr=curr->next;
+                else{
+                    SymbolInfo *curr=hashTable[index];
+                    while(curr->next!=NULL){
+                        curr=curr->next;
+                        pos++;
+                    }
+                    curr->next=new SymbolInfo(Name,type);
+                    cout<<"inserted at pos: "<<pos<<endl;
+                    return true;
+                }
             }
-           curr->setNext(new SymbolInfo(Name,type));
-           return true;
+            return false;
         }
 
         SymbolInfo* LookUp(string Name){
