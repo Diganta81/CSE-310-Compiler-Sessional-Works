@@ -32,7 +32,7 @@ class ScopeTable
                 parent=Parent;
                 this->id=i;
             }
-            cout<<"ScopeTable "<<id<<" created"<<endl;
+            cout<<"ScopeTable# "<<id<<" created"<<endl;
         }
 
         void setId(int id){
@@ -73,16 +73,22 @@ class ScopeTable
         }
 
         bool Insert(string Name,string type){
-            SymbolInfo *findSymbol=LookUp(Name);
-            cout<<"1"<<endl;
+            int index=getBucketNum(Name);
+            int num=0;
+            SymbolInfo *findSymbol=hashTable[index];
+            while(findSymbol!=NULL){
+                num++;
+                if(findSymbol->getName()==Name){
+                    return findSymbol;
+                }
+                findSymbol=findSymbol->next;
+            }
             if(findSymbol==NULL){
-                cout<<"2"<<endl;
                 int index=getBucketNum(Name);
                 int pos=1;
                 if(hashTable[index]==NULL){
-                    cout<<"3"<<endl;
                     hashTable[index]=new SymbolInfo(Name,type);
-                    cout<<"inserted at pos: "<<pos<<endl;
+                    cout<<"Inserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;
                     return true;
                 }
                 else{
@@ -92,7 +98,7 @@ class ScopeTable
                         pos++;
                     }
                     curr->next=new SymbolInfo(Name,type);
-                    cout<<"inserted at pos: "<<pos<<endl;
+                    cout<<"Inserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;;
                     return true;
                 }
             }
@@ -100,16 +106,13 @@ class ScopeTable
         }
 
         SymbolInfo* LookUp(string Name){
-            cout<<Name<<" L 0"<<endl;
             int index=getBucketNum(Name);
-            cout<<"L 1"<<endl;
             int num=0;
             SymbolInfo *curr=hashTable[index];
-            cout<<"L 2"<<endl;
             while(curr!=NULL){
                 num++;
                 if(curr->getName()==Name){
-                    cout<<"found at "+to_string(index)+" position: "+to_string(num);
+                    cout<<"\'"<<Name<<"\'"<<" found in ScopeTable# "<<id<<" at position "<<index<<", "<<num<<endl;
                     return curr;
                 }
                 curr=curr->next;
