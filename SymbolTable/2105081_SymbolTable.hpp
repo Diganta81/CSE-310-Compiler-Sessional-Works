@@ -28,11 +28,11 @@ class SymbolTable
         if(current->getParent()!=NULL){
             ScopeTable* temp=current;
             current=current->getParent();
-            cout<<"ScopeTable# "<<temp->getId()<<" removed"<<endl;
+            cout<<"\tScopeTable# "<<temp->getId()<<" removed"<<endl;
             delete temp;
         }
         else{
-            cout<<"can not be deleted"<<endl;
+            cout<<"\tcan not be deleted"<<endl;
         }
     }
 
@@ -53,7 +53,7 @@ class SymbolTable
             temp=temp->getParent();
         }
         if(!temp->find(name)){
-            cout<<"Not found"<<endl;;
+            cout<<"\tNot found"<<endl;;
             return NULL;
         }
         return temp->LookUp(name);
@@ -70,7 +70,7 @@ class SymbolTable
             for(int j=0;j<i;j++){
                 cout<<"\t";
             }
-            cout<<"ScopeTable # "<<temp->getId()<<endl;
+            cout<<"\tScopeTable # "<<temp->getId()<<endl;
             temp->print(i);
             temp=temp->getParent();
             i++;

@@ -32,7 +32,7 @@ class ScopeTable
                 parent=Parent;
                 this->id=i;
             }
-            cout<<"ScopeTable# "<<id<<" created"<<endl;
+            cout<<"\tScopeTable# "<<id<<" created"<<endl;
         }
 
         void setId(int id){
@@ -56,7 +56,7 @@ class ScopeTable
         }
 
         int getBucketNum(string Name){
-            uint64_t num=Hash::sdbm_hash(Name);
+            unsigned int num=Hash::sdbm_hash(Name);
             return num%bucketSize;
         }
 
@@ -88,7 +88,7 @@ class ScopeTable
                 int pos=1;
                 if(hashTable[index]==NULL){
                     hashTable[index]=new SymbolInfo(Name,type);
-                    cout<<"Inserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;
+                    cout<<"\tInserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;
                     return true;
                 }
                 else{
@@ -98,7 +98,7 @@ class ScopeTable
                         pos++;
                     }
                     curr->next=new SymbolInfo(Name,type);
-                    cout<<"Inserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;;
+                    cout<<"\tInserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;;
                     return true;
                 }
             }
@@ -112,12 +112,12 @@ class ScopeTable
             while(curr!=NULL){
                 num++;
                 if(curr->getName()==Name){
-                    cout<<"\'"<<Name<<"\'"<<" found in ScopeTable# "<<id<<" at position "<<index<<", "<<num<<endl;
+                    cout<<"\t\'"<<Name<<"\'"<<" found in ScopeTable# "<<id<<" at position "<<index<<", "<<num<<endl;
                     return curr;
                 }
                 curr=curr->next;
             }
-            cout<<"NOT found"<<endl;
+            cout<<"\tNOT found"<<endl;
             return NULL;
         }
 
@@ -131,7 +131,7 @@ class ScopeTable
                         SymbolInfo *temp=curr;
                         hashTable[index]=curr->next;
                         delete temp;
-                        cout<<"Dleleted"<<endl;
+                        cout<<"\tDleleted"<<endl;
                         return true;
                     }
                     else{
@@ -143,7 +143,7 @@ class ScopeTable
                 prev=curr;
                 curr=curr->next;
             }
-            cout<<"Not FOund"<<endl;
+            cout<<"\tNot FOund"<<endl;
             return false;
         }
 
@@ -153,7 +153,7 @@ class ScopeTable
                 for(int j=0;j<k;j++){
                     cout<<"\t";
                 }
-                cout<<to_string(i+1)+"--> ";
+                cout<<"\t"<<to_string(i+1)+"--> ";
                 while(curr!=NULL){
                     cout<<"<"<<curr->getName()<<","<<curr->getType()<<">";
                     curr=curr->next;
