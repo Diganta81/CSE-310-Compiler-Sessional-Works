@@ -2,28 +2,36 @@
 #include <string>
 #include <sstream>
 
-int main()
+int main(int argc, char* argv[])
 {
+    if(argc!=2) {
+        return 1;
+    }
     freopen("sample_input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
     int n;
-    cin >> n;
-    cout<<n<<endl;
+    cin>>n;
     getchar();
     int i=1;
-    SymbolTable *symbolTable = new SymbolTable(new ScopeTable(n,i,NULL));
+    SymbolTable *symbolTable = new SymbolTable(new ScopeTable(n,i,NULL,argv[1]));
     i++;
     string command;
-    int count = 1;
+    int count=1;
     while(true){
-        getline(cin, command);
-        cout << "Cmd " << count << ": " << command << "\n";
-        int num = 0;
-        string word,arg[10];
-        istringstream iss(command);
-        while (getline(iss,word,' '))
+        getline(cin,command);
+        cout<<"Cmd "<<count<<": "<<command<<endl;
+        string word;
+        istringstream istr(command);
+        int t=0;
+        while(istr>>word){
+            t++;
+        }
+        istringstream str(command);
+        string* arg=new string[t];
+        int num=0;
+        while (getline(str,word,' '))
         {
-            arg[num++] = word;
+            arg[num++]=word;
         }
         if(arg[0]=="I"){
             if(num<3){
@@ -55,6 +63,21 @@ int main()
                     }
                     type+="}";
                     symbolTable->insert(arg[1],type);
+                }
+                else if(arg[2]=="UNION"){
+                    string type=arg[2]+",{";
+                    for(int i=3;i<num;i+=2){
+                        if(i==num-2){
+                            type+="("+arg[i]+","+arg[i+1]+")";
+                            continue;
+                        }
+                        type+="("+arg[i]+","+arg[i+1]+"),";
+                    }
+                    type+="}";
+                    symbolTable->insert(arg[1],type);
+                }
+                else{
+                    cout<<"\tInvalid Argument"<<endl;
                 }
             }  
         }
@@ -112,6 +135,7 @@ int main()
                 cout<<"\tNumber of parameters mismatch for the command S"<<endl;
             }
             else{
+                delete[] arg;
                 delete symbolTable;
                 break;
             }
@@ -120,5 +144,6 @@ int main()
             cout<<"\tInvalid command"<<endl;
         }
         count++;
+        delete[] arg;
     }
 }

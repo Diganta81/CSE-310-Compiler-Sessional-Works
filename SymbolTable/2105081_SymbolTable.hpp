@@ -14,6 +14,7 @@ class SymbolTable
 
     ~SymbolTable(){
         while(current!=NULL){
+            cout<<"\tScopeTable # "<<current->getId()<<" removed"<<endl;
             ScopeTable* temp=current;
             current=current->getParent();
             delete temp;
@@ -53,13 +54,14 @@ class SymbolTable
             temp=temp->getParent();
         }
         if(!temp->find(name)){
-            cout<<"\tNot found"<<endl;;
+            cout<<"\t\'"<<name<<"\'"<<" not found in any of the ScopeTables"<<endl;
             return NULL;
         }
         return temp->LookUp(name);
     }
 
     void printCurrentScopeTable(int i=0){
+        cout<<"\tScopeTable # "<<current->getId()<<endl;
         current->print(i);
     }
 
@@ -75,5 +77,15 @@ class SymbolTable
             temp=temp->getParent();
             i++;
         }
+    }
+
+    int getCollisionCount(){
+        int count=0;
+        ScopeTable* temp=current;
+        while(temp!=NULL){
+            count+=temp->getCollisionCount();
+            temp=temp->getParent();
+        }
+        return count;
     }
 };

@@ -12,11 +12,14 @@ class ScopeTable
     SymbolInfo **hashTable;
     ScopeTable *parent;
     int numOfChildren;
+    string hash_name;
+    int collisionCount;
     public:
 
-        ScopeTable(int n,int i,ScopeTable *Parent){
+        ScopeTable(int n,int i,ScopeTable *Parent,string hash_name="sdbm"){
             this->bucketSize=n;
             hashTable=new SymbolInfo*[n];
+            this->collisionCount=0;
             for(int i=0;i<n;i++){
                 hashTable[i]=NULL;
             }
@@ -24,6 +27,7 @@ class ScopeTable
                 parent=NULL;
                 id=i;
                 numOfChildren=0;
+                this->hash_name=hash_name;
             }
             else{
                 if(parent!=Parent){
@@ -31,6 +35,7 @@ class ScopeTable
                 }
                 parent=Parent;
                 this->id=i;
+                this->hash_name=Parent->hash_name;
             }
             cout<<"\tScopeTable# "<<id<<" created"<<endl;
         }
@@ -56,9 +61,24 @@ class ScopeTable
         }
 
         int getBucketNum(string Name){
-            unsigned int num=Hash::sdbm_hash(Name);
-            return num%bucketSize;
+            if(hash_name=="sdbm"){
+                return Hash::sdbm_hash(Name,bucketSize);
+            }
+            else if(hash_name=="djb2"){
+                return Hash::djb2_hash(Name,bucketSize);
+            }
+            else if(hash_name=="rs"){
+                return Hash::rs_hash(Name,bucketSize);
+            }
+            else{
+                cout<<"\tInvalid hash function"<<endl;
+                return -1;
+            }
         }
+
+        int getCollisionCount(){
+            return collisionCount;
+        }   
 
         bool find(string Name){
             int index=getBucketNum(Name);
@@ -74,6 +94,7 @@ class ScopeTable
 
         bool Insert(string Name,string type){
             int index=getBucketNum(Name);
+            cout<<index<<endl;
             int num=0;
             SymbolInfo *findSymbol=hashTable[index];
             while(findSymbol!=NULL){
@@ -88,17 +109,20 @@ class ScopeTable
                 int pos=1;
                 if(hashTable[index]==NULL){
                     hashTable[index]=new SymbolInfo(Name,type);
-                    cout<<"\tInserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;
+                    cout<<"\tInserted in ScopeTable# "<<id<< " at position "<<index+1<<", "<<pos<<endl;
                     return true;
                 }
                 else{
+                    collisionCount++;
                     SymbolInfo *curr=hashTable[index];
-                    while(curr->next!=NULL){
+                    SymbolInfo *prev=NULL;
+                    while(curr!=NULL){
+                        prev=curr;
                         curr=curr->next;
                         pos++;
                     }
-                    curr->next=new SymbolInfo(Name,type);
-                    cout<<"\tInserted in ScopeTable# "<<id<< "at position "<<index<<", "<<pos<<endl;;
+                    prev->next=new SymbolInfo(Name,type);
+                    cout<<"\tInserted in ScopeTable# "<<id<< " at position "<<index+1<<", "<<pos<<endl;;
                     return true;
                 }
             }
@@ -112,12 +136,12 @@ class ScopeTable
             while(curr!=NULL){
                 num++;
                 if(curr->getName()==Name){
-                    cout<<"\t\'"<<Name<<"\'"<<" found in ScopeTable# "<<id<<" at position "<<index<<", "<<num<<endl;
+                    cout<<"\t\'"<<Name<<"\'"<<" found in ScopeTable# "<<id<<" at position "<<index+1<<", "<<num<<endl;
                     return curr;
                 }
                 curr=curr->next;
             }
-            cout<<"\tNOT found"<<endl;
+            cout<<"\t\'"<<Name<<"\'"<<" not found in any of the scope table"<<endl;
             return NULL;
         }
 
@@ -125,13 +149,14 @@ class ScopeTable
             int index=getBucketNum(Name);
             SymbolInfo *curr=hashTable[index];
             SymbolInfo *prev=NULL;
+            int pos=1;
             while(curr!=NULL){
                 if(curr->getName()==Name){
                     if(prev==NULL){
                         SymbolInfo *temp=curr;
                         hashTable[index]=curr->next;
                         delete temp;
-                        cout<<"\tDleleted"<<endl;
+                        cout<<"\tDeleted"<<"\' "<<Name<<"\'"<<" from ScopeTable# "<<id<<" at position "<<index+1<<","<<pos<<endl;
                         return true;
                     }
                     else{
@@ -142,8 +167,9 @@ class ScopeTable
                 }
                 prev=curr;
                 curr=curr->next;
+                pos++;
             }
-            cout<<"\tNot FOund"<<endl;
+            cout<<"\tNot found in the current ScopeTable"<<endl;
             return false;
         }
 
@@ -158,7 +184,7 @@ class ScopeTable
                     cout<<"<"<<curr->getName()<<","<<curr->getType()<<">";
                     curr=curr->next;
                 }
-                cout<<endl;
+                cout<<" "<<endl;
             }
         }
 
