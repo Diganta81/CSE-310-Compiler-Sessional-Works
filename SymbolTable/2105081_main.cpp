@@ -1,19 +1,26 @@
-#include"2105081_SymbolTable.hpp"
-#include <string>
-#include <sstream>
+#include"2105081_symbol_table.hpp"
+#include<string>
+#include<sstream>
 
 int main(int argc, char* argv[])
 {
-    if(argc!=2) {
+    if(argc<2) {
         return 1;
     }
-    freopen("sample_input.txt", "r", stdin);
-    freopen("output.txt", "w", stdout);
+    freopen(argv[1],"r",stdin);
+    freopen(argv[2],"w",stdout);
     int n;
     cin>>n;
     getchar();
     int i=1;
-    SymbolTable *symbolTable = new SymbolTable(new ScopeTable(n,i,NULL,argv[1]));
+    string hash="";
+    if(argc>3){
+        hash=argv[3];
+    }
+    else{
+        hash="sdbm";    
+    }
+    SymbolTable* symbolTable=new SymbolTable(new ScopeTable(n,i,NULL,hash));
     i++;
     string command;
     int count=1;
@@ -31,7 +38,8 @@ int main(int argc, char* argv[])
         int num=0;
         while (getline(str,word,' '))
         {
-            arg[num++]=word;
+            arg[num]=word;
+            num++;
         }
         if(arg[0]=="I"){
             if(num<3){

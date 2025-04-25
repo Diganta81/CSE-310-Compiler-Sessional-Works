@@ -1,0 +1,15 @@
+SDBM Hash:
+	Collisions     : 32
+	Collision ratio: 1.3913
+DJB2 Hash:
+	Collisions     : 31
+	Collision ratio: 1.34783
+RS Hash:
+	Collisions     : 25
+	Collision ratio: 1.08696
+
+
+hash functions:
+	sdbm:given in the pdf
+	djb2:this hash function was taken from https://theartincode.stanis.me/008-djb2/
+	rs:this hash function was taken from https://www.programmingalgorithms.com/algorithm/rs-hash/cpp/

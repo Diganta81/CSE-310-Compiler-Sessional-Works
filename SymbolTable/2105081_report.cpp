@@ -1,18 +1,16 @@
-
-#include"2105081_SymbolTable.hpp"
+#include"2105081_symbol_table.hpp"
 #include<sstream>
 
 int main()
 {
-    freopen("report_input.txt", "r", stdin);
+    freopen("2105081_report_input.txt","r",stdin);
     int n;
     cin>>n;
-    cout<<n<<endl;
     getchar();
     int i=1;
-    SymbolTable *symbolTable1 = new SymbolTable(new ScopeTable(n,i,NULL,"sdbm"));
-    SymbolTable *symbolTable2 = new SymbolTable(new ScopeTable(n,i,NULL,"djb2"));
-    SymbolTable *symbolTable3 = new SymbolTable(new ScopeTable(n,i,NULL,"rs"));
+    SymbolTable *symbolTable1=new SymbolTable(new ScopeTable(n,i,NULL,"sdbm"));
+    SymbolTable *symbolTable2=new SymbolTable(new ScopeTable(n,i,NULL,"djb2"));
+    SymbolTable *symbolTable3=new SymbolTable(new ScopeTable(n,i,NULL,"rs"));
     string command;
     i++;
     while(true){
@@ -36,8 +34,11 @@ int main()
             }
             else if(num==3){
                 symbolTable1->insert(arg[1],arg[2]);
+                //cout<<1<<endl;
                 symbolTable2->insert(arg[1],arg[2]);
+                //cout<<2<<endl;
                 symbolTable3->insert(arg[1],arg[2]);
+                //cout<<3<<endl;
             }
             else{
                 if(arg[2]=="FUNCTION"){
@@ -132,20 +133,20 @@ int main()
         delete[] arg;
     }
     freopen("output.txt","w",stdout);
-    double ratio_sdbm = (double)symbolTable1->getCollisionCount()/n;
-    double ratio_djb2 = (double)symbolTable2->getCollisionCount()/n;
-    double ratio_xor = (double)symbolTable3->getCollisionCount()/n;
+    double sdbm_ratio=(double)symbolTable1->getCollisionCount()/n;
+    double djb2_ratio=(double)symbolTable2->getCollisionCount()/n;
+    double rs_ratio=(double)symbolTable3->getCollisionCount()/n;
 
-    cout<< "SDBM Hash:\n";
-    cout<< "  Collisions     : " <<symbolTable1->getCollisionCount()<< endl;
-    cout<< "  Collision ratio: " << ratio_sdbm << endl << endl;
+    cout<<"SDBM Hash:"<<endl;
+    cout<<"\tCollisions     : " <<symbolTable1->getCollisionCount()<<endl;
+    cout<<"\tCollision ratio: " <<sdbm_ratio<<endl;
 
-    cout<< "DJB2 Hash:\n";
-    cout<< "  Collisions     : " <<symbolTable2->getCollisionCount()<< endl;
-    cout<< "  Collision ratio: " << ratio_djb2 << endl << endl;
+    cout<< "DJB2 Hash:"<<endl;
+    cout<< "\tCollisions     : " <<symbolTable2->getCollisionCount()<< endl;
+    cout<< "\tCollision ratio: " <<djb2_ratio<<endl;
 
-    cout<< "XOR Hash:\n";
-    cout<< "  Collisions     : " <<symbolTable3->getCollisionCount()<< endl;
-    cout<< "  Collision ratio: " << ratio_xor << endl;
+    cout<< "RS Hash:"<<endl;
+    cout<< "\tCollisions     : " <<symbolTable3->getCollisionCount()<< endl;
+    cout<< "\tCollision ratio: " <<rs_ratio<<endl;
 
 }

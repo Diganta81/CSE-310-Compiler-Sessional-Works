@@ -44,4 +44,6 @@ class Hash
 			}
 			return hash%num_buckets;
 		}
+
+		// this hash function was taken from https://www.programmingalgorithms.com/algorithm/rs-hash/cpp/
 };
