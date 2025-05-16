@@ -1,125 +1,54 @@
-Line no 1: Token <INT> Lexeme int found
+Error at line no 1: Too many decimal points 127.0.0.1
 
-Line no 1: Token <ID> Lexeme main found
+Error at line no 2: Ill formed number 23E-1.2
 
-ScopeTable # 1
-6 --> < main : ID >
 
-Line no 1: Token <LPAREN> Lexeme ( found
+Error at line no 3: Ill formed number 5E7.2
 
-Line no 1: Token <RPAREN> Lexeme ) found
 
-Line no 1: Token <LCURL> Lexeme { found
+Error at line no 4: Invalid prefix on ID or invalid suffix on Numbe 123_bcd
 
-Line no 3: Token <CHAR> Lexeme char found
+Error at line no 5: Multi character constant error  'na'
 
-Line no 3: Token <ID> Lexeme str1 found
+Error at line no 6: Unterminated character '\t
 
-ScopeTable # 1.1
-4 --> < str1 : ID >
-ScopeTable # 1
-6 --> < main : ID >
 
-Line no 3: Token <LTHIRD> Lexeme [ found
+Error at line no 7: Unterminated character '
 
-Line no 3: Token <CONST_INT> Lexeme 100 found
 
-ScopeTable # 1.1
-4 --> < str1 : ID >< 100 : CONST_INT >
-ScopeTable # 1
-6 --> < main : ID >
+Error at line no 8: Multi character constant error  'ab cd'
 
-Line no 3: Token <RTHIRD> Lexeme ] found
+Error at line no 9: Unterminated character '\'
 
-Line no 3: Token <ASSIGNOP> Lexeme = found
 
-Line no 3: Token <STRING> Lexeme "I own a dog." found --> <STRING, I own a dog.>
+Error at line no 10: Empty character constant error ''
 
-Line no 3: Token <SEMICOLON> Lexeme ; found
+Error at line no 11: Unterminated string "abcd
 
-Line no 4: Token <CHAR> Lexeme char found
+Error at line no 12: Unterminated string "efgh\"
 
-Line no 4: Token <ID> Lexeme str2 found
+Error at line no 13: Unterminated string "abcd\
+efgh
 
-ScopeTable # 1.1
-4 --> < str1 : ID >< 100 : CONST_INT >
-5 --> < str2 : ID >
-ScopeTable # 1
-6 --> < main : ID >
-
-Line no 4: Token <LTHIRD> Lexeme [ found
-
-Line no 4: Token <CONST_INT> Lexeme 100 found
-
-< 100 : CONST_INT > already exists in ScopeTable# 1.1 at position 4, 1
-
-Line no 4: Token <RTHIRD> Lexeme ] found
-
-Line no 4: Token <ASSIGNOP> Lexeme = found
-
-Line no 5: Token <STRING> Lexeme "I own a dog.\
-    His name is Jack." found --> <STRING, I own a dog.    His name is Jack.>
-
-Line no 5: Token <SEMICOLON> Lexeme ; found
-
-Line no 6: Token <CHAR> Lexeme char found
-
-Line no 6: Token <ID> Lexeme str3 found
-
-ScopeTable # 1.1
-4 --> < str1 : ID >< 100 : CONST_INT >
-5 --> < str2 : ID >
-6 --> < str3 : ID >
-ScopeTable # 1
-6 --> < main : ID >
-
-Line no 6: Token <LTHIRD> Lexeme [ found
-
-Line no 6: Token <CONST_INT> Lexeme 100 found
-
-< 100 : CONST_INT > already exists in ScopeTable# 1.1 at position 4, 1
-
-Line no 6: Token <RTHIRD> Lexeme ] found
-
-Line no 6: Token <ASSIGNOP> Lexeme = found
-
-Line no 7: Token <STRING> Lexeme "He said, \" I own a dog\"\
-    so I asked, \"What is his name?\"" found --> <STRING, He said, " I own a dog"    so I asked, "What is his name?">
-
-Line no 7: Token <SEMICOLON> Lexeme ; found
-
-Line no 9: Token <COMMENT> Lexeme //This is a single line comment. found
-
-Line no 11: Token <COMMENT> Lexeme //This is also a\
-    single line comment. found
-
-Line no 13: Token <COMMENT> Lexeme //This is also a /*Multi-line just for\
-    fun */ single line comment. found
-
-Line no 16: Token <COMMENT> Lexeme //1.2.3.4 not an\
-    error here. found
-
-Line no 20: Token <COMMENT> Lexeme /* A sample multi-line
-    comment
-    to check. */ found
-
-Line no 22: Token <RETURN> Lexeme return found
-
-Line no 22: Token <CONST_INT> Lexeme 0 found
-
-ScopeTable # 1.1
-4 --> < str1 : ID >< 100 : CONST_INT >
-5 --> < str2 : ID >
-6 --> < str3 : ID >< 0 : CONST_INT >
-ScopeTable # 1
-6 --> < main : ID >
-
-Line no 22: Token <SEMICOLON> Lexeme ; found
-
-Line no 24: Token <RCURL> Lexeme } found
+Line no 15: Token <ID> Lexeme ijk found
 
 ScopeTable # 1
-6 --> < main : ID >
+4 --> < ijk : ID >
 
-Total lines: 25
-Total errors: 0
+Error at line no 15: Unterminated string "
+
+Error at line no 16: Unrecognized character #
+
+Error at line no 16: Unrecognized character $
+
+Error at line no 16: Unrecognized character @
+
+Error at line no 17: Unterminated comment /**abc
+def
+
+
+ScopeTable # 1
+4 --> < ijk : ID >
+
+Total lines: 19
+Total errors: 18

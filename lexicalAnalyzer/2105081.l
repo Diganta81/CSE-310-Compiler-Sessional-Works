@@ -12,13 +12,12 @@ int total_bucket=7;
 int line_count=1;
 int error_count=0;
 int warning_count=0;
-int line_starts=1;
 int temp_line_count=0;
 string temp_line;
 string token;
 SymbolTable* symbol_table;
-ofstream logout;
-ofstream tokenout;
+ofstream logfile;
+ofstream tokenfile;
 
 string make_upper(string s){
     string s1="";
@@ -76,12 +75,12 @@ void process_char(){;
         c=special_char_parse(s);
     }
     if(c!='o'){
-        tokenout<<"<CONST_CHAR, "<<c<<"> ";
-        logout<<"Line no "<<line_count<<": Token <CONST_CHAR> Lexeme \'"<<s<<"\' found --> <CONST_CHAR, "<<c<<">\n\n";
+        tokenfile<<"<CONST_CHAR, "<<c<<"> ";
+        logfile<<"Line no "<<line_count<<": Token <CONST_CHAR> Lexeme \'"<<s<<"\' found --> <CONST_CHAR, "<<c<<">"<<endl<<endl;
     }
     else{
-        tokenout<<"<CONST_CHAR, "<<s<<"> ";
-        logout<<"Line no "<<line_count<<": Token <CONST_CHAR> Lexeme "<<s<<" found\n\n";
+        tokenfile<<"<CONST_CHAR, "<<s<<"> ";
+        logfile<<"Line no "<<line_count<<": Token <CONST_CHAR> Lexeme "<<s<<" found"<<endl<<endl;
     }
     s="\'"+s+"'";
     bool inserted=symbol_table->insert(s,"CONST_CHAR");
@@ -89,13 +88,13 @@ void process_char(){;
         symbol_table->printAllScopeTable();
     }
     // else{
-    //     logout<<"Line no "<<line_count<<" Error: <CONST_CHAR> Lexeme "<<s<<" already exists in symbol table\n\n";
+    //     logfile<<"Line no "<<line_count<<" Error: <CONST_CHAR> Lexeme "<<s<<" already exists in symbol table\n\n";
     // }
 }
 
 void print(string s){
-    tokenout<<"<"<<s<<", "<<yytext<<"> ";
-    logout<<"Line no "<<line_count<<": Token <"<<s<<"> Lexeme "<<yytext<<" found\n\n";
+    tokenfile<<"<"<<s<<", "<<yytext<<"> ";
+    logfile<<"Line no "<<line_count<<": Token <"<<s<<"> Lexeme "<<yytext<<" found"<<endl<<endl;
 }    
 
 %}
@@ -114,8 +113,8 @@ ADDOP [+-]
 MULOP [*/%]
 INCOP "++"|"--"
 RELOP "<"|"<="|">"|">="|"=="|"!="
-ASSIGNOP [=]
-LOGICOP "&&"|"\|"
+ASSIGNOP "="
+LOGICOP "&&"|"\|\|"
 NOT "!"
 LPAREN "("
 RPAREN ")"
@@ -125,8 +124,8 @@ LTHIRD "["
 RTHIRD "]"
 COMMA ","
 SEMICOLON ";"
-NEWLINE [\n]|[\r\n]
-CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
+NEWLINE \n|\r\n
+CHARACTER [^\n\r\\\'\"]|{SPECIAL_CHAR}
 /* CHAR "\'{CHARACTER}\'" */
 
 
@@ -137,13 +136,12 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 
 {NEWLINE} {
     line_count++;
-    line_starts=1;
 }
 
 {KEYWORD} {
     string s=make_upper(yytext);
-    tokenout<<"<"<<s<<"> ";
-    logout<<"Line no "<<line_count<<": Token "<<"<"<<s<<">"<<" Lexeme "<<yytext<<" found\n\n";
+    tokenfile<<"<"<<s<<"> ";
+    logfile<<"Line no "<<line_count<<": Token "<<"<"<<s<<">"<<" Lexeme "<<yytext<<" found"<<endl<<endl;
 }
 
 {CONST_INT} {
@@ -154,7 +152,7 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
         symbol_table->printAllScopeTable();
     }
     // else{
-    //     logout<<"Line no "<<line_count<<" Error: <CONST_INT> Lexeme "<<yytext<<" already exists in symbol table\n\n";
+    //     logfile<<"Line no "<<line_count<<" Error: <CONST_INT> Lexeme "<<yytext<<" already exists in symbol table\n\n";
     // }
 }
 
@@ -166,18 +164,18 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
         symbol_table->printAllScopeTable();
     }
     // else{
-    //     logout<<"Line no "<<line_count<<" Error: <CONST_FLOAT> Lexeme "<<yytext<<" already exists in symbol table\n\n";
+    //     logfile<<"Line no "<<line_count<<" Error: <CONST_FLOAT> Lexeme "<<yytext<<" already exists in symbol table\n\n";
     // }
 }
 
 {CONST_INT}[Ee][+-]?{CONST_FLOAT}+ {
     error_count++;
-    logout<<"Error at line no "<<line_count<<": ill formed number "<<yytext<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Ill formed number "<<yytext<<endl<<endl<<endl;
 }
 
 {CONST_FLOAT}(\.{CONST_FLOAT})+ {
     error_count++;
-    logout<<"Error at line no "<<line_count<<": too many decimal points "<<yytext<<"\n";
+    logfile<<"Error at line no "<<line_count<<": Too many decimal points "<<yytext<<endl<<endl;
 }
 
 {ADDOP} {
@@ -258,8 +256,8 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 }
 
 {ID} {
-    tokenout<<"<ID, "<<yytext<<"> ";
-    logout<<"Line no "<<line_count<<": Token <ID> Lexeme "<<yytext<<" found\n\n";
+    tokenfile<<"<ID, "<<yytext<<"> ";
+    logfile<<"Line no "<<line_count<<": Token <ID> Lexeme "<<yytext<<" found"<<endl<<endl;
     if(symbol_table->insert(yytext,"ID")){
         symbol_table->printAllScopeTable();
     }
@@ -267,58 +265,47 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 
 {CONST_INT}{ID} {
     error_count++;
-    logout<<"Error at line no "<<line_count<<": Invalid Suffix on numeric constant or invalid prefix on identifier for character sequence "<<yytext<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Invalid prefix on ID or invalid suffix on Numbe "<<yytext<<endl<<endl;
 }
 
 "\'\'" {
     error_count++;
-    logout<<"Error at line no "<<line_count<<": Empty character constant error "<<yytext<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Empty character constant error "<<yytext<<endl<<endl;
 }
 
 [\']{CHARACTER}*{NEWLINE} {
-    line_count++;
     error_count++;
-    logout << "Error at line no " <<line_count << ": Unterminated chaaracter " << yytext << "\n\n";
-}
-[\']{SPECIAL_CHAR}*{NEWLINE} {
+    logfile << "Error at line no " <<line_count << ": Unterminated character " << yytext <<endl<<endl;
     line_count++;
-    error_count++;
-    logout << "Error at line no " << line_count << ": Unterminated character " << yytext << "\n\n";
 }
 
 [\']{CHARACTER}{CHARACTER}+[\'] {
     error_count++;
-    logout << "Error at line no " << line_count << ": Multi character constant error  " << yytext << "\n\n";
+    logfile << "Error at line no "<<line_count<< ": Multi character constant error  "<<yytext<<endl<<endl;
 }
 
-[\']{CHARACTER}*[\'] {
+[\']{CHARACTER}[\'] {
     process_char();
 }
 
-"\/\/" {
-    temp_line_count=0;
-    temp_line=yytext;
-    BEGIN singleComment;
-}
-
-[\"] {
+"\"" {
     BEGIN stringState;
     temp_line="";
+    token="";
     temp_line_count=0;
     temp_line+=yytext;
-    token="";
 }
 
 <stringState>\" {
     temp_line+=yytext;
     line_count+=temp_line_count;
     if(temp_line_count==0){
-        tokenout<<"<STRING, "<<token<<"> ";
-        logout<<"Line no "<<line_count<<": Token <STRING> Lexeme "<<temp_line<<" found --> <STRING, "<<token<<">\n\n";
+        tokenfile<<"<STRING, "<<token<<"> ";
+        logfile<<"Line no "<<line_count<<": Token <STRING> Lexeme "<<temp_line<<" found --> <STRING, "<<token<<">"<<endl<<endl;
     }
     else{
-        tokenout<<"<STRING, "<<token<<"> ";
-        logout<<"Line no "<<line_count<<": Token <STRING> Lexeme "<<temp_line<<" found --> <STRING, "<<token<<">\n\n";
+        tokenfile<<"<STRING, "<<token<<"> ";
+        logfile<<"Line no "<<line_count<<": Token <STRING> Lexeme "<<temp_line<<" found --> <STRING, "<<token<<">"<<endl<<endl;
     }
     BEGIN INITIAL;
 }
@@ -330,7 +317,7 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 
 <stringState>{NEWLINE} {
     error_count++;
-    logout<<"Error at line no "<<line_count<<": UNFINISHED_STRING "<<temp_line<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Unterminated string "<<temp_line<<endl<<endl;
     line_count+=temp_line_count;
     line_count++;
     BEGIN INITIAL;
@@ -349,13 +336,19 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 <stringState><<EOF>> {
     error_count++;
     line_count+=temp_line_count;
-    logout<<"Error at line no "<<line_count<<": UNFINISHED_STRING "<<temp_line<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Unterminated string "<<temp_line<<endl<<endl;
     BEGIN INITIAL;
+}
+
+"\/\/" {
+    temp_line_count=0;
+    temp_line=yytext;
+    BEGIN singleComment;
 }
 
 <singleComment>{NEWLINE} {
     line_count+=temp_line_count;
-    logout<<"Line no "<<line_count<<": Token <COMMENT> Lexeme "<<temp_line<<" found\n\n";
+    logfile<<"Line no "<<line_count<<": Token <COMMENT> Lexeme "<<temp_line<<" found"<<endl<<endl;
     line_count++;
     BEGIN INITIAL;
 }
@@ -371,7 +364,7 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 
 <singleComment><<EOF>> {
     line_count+=temp_line_count;
-    logout<<"Line no "<<line_count<<": Token <COMMENT> Lexeme "<<temp_line<<" found\n\n";
+    logfile<<"Line no "<<line_count<<": Token <COMMENT> Lexeme "<<temp_line<<" found"<<endl<<endl;
     BEGIN INITIAL;
 }
 
@@ -384,7 +377,7 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 <multiComment>"\*\/" {
     temp_line+=yytext;
     line_count+=temp_line_count;
-    logout<<"Line no "<<line_count<<": Token <COMMENT> Lexeme "<<temp_line<<" found\n\n";
+    logfile<<"Line no "<<line_count<<": Token <COMMENT> Lexeme "<<temp_line<<" found"<<endl<<endl;
     
     BEGIN INITIAL;
 }
@@ -400,15 +393,14 @@ CHARACTER [^\n\r\\\'\"]|SPECIAL_CHAR
 
 <multiComment><<EOF>> {
     error_count++;
-    logout<<"Error at line no "<<line_count<<": UNFINISHED COMMENT "<<temp_line<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Unterminated comment "<<temp_line<<endl<<endl;
     line_count+=temp_line_count;
     BEGIN INITIAL;
 }
 
 . {
-    line_starts=0;
     error_count++;
-    logout<<"Error at line no "<<line_count<<": Unrecognized character "<<yytext<<"\n\n";
+    logfile<<"Error at line no "<<line_count<<": Unrecognized character "<<yytext<<endl<<endl;
 }
 
 %%
@@ -418,23 +410,23 @@ int main(int argc,char *argv[]) {
 		cout<<"please provide the input file name"<<endl;
 		return 0;
 	}
-	FILE *fin = fopen(argv[1], "r");
-	if(fin == NULL){
+	FILE *fin=fopen(argv[1],"r");
+	if(fin==NULL){
 		cout<<"File not found"<<endl;
 		return 0;
 	}
-	logout.open("2105081_log.txt");
-    cout.rdbuf(logout.rdbuf());
-	tokenout.open("2105081_token.txt");
     symbol_table=new SymbolTable(new ScopeTable(total_bucket,NULL));
+    tokenfile.open("2105081_token.txt");
+    logfile.open("2105081_log.txt");
+    cout.rdbuf(logfile.rdbuf());
 	yyin=fin;
 	yylex();
 	fclose(yyin);
 	symbol_table->printAllScopeTable();
-	logout <<"Total lines: "<< line_count<<"\n";
-	logout <<"Total errors: "<< error_count<<"\n";
-    tokenout.close();
-	logout.close();
+	logfile<<"Total lines: "<<line_count<<endl;
+	logfile<<"Total errors: "<<error_count<<endl;
+    logfile.close();
+    tokenfile.close();
 	delete symbol_table;
 	return 0;
 }
