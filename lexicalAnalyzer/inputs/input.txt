@@ -1,2 +1,4 @@
-Foo<Bar<Bazz<Foo>>>
-Foo<Bar<Bazz<foo>>>
+#define NICE “nice”
+#define PI 3.1415
+#define num 3.48E20
+#define hi
