@@ -14,6 +14,8 @@ ofstream parserLogFile; // global output stream
 ofstream errorFile; // global error stream
 ofstream lexLogFile; // global lexer log stream
 ofstream asmCodeFile;
+ofstream optimizedCodeFile;
+
 string cont;
 
 int syntaxErrorCount;
@@ -39,7 +41,8 @@ int main(int argc, const char* argv[]) {
     string parserLogFileName = outputDirectory + "parserLog.txt";
     string errorFileName = outputDirectory + "errorLog.txt";
     string lexLogFileName = outputDirectory + "lexerLog.txt";
-    string asmCodeFileName = outputDirectory + "outputCode.asm";
+    string asmCodeFileName = outputDirectory + "Code.asm";
+    string optimizedCodeFileName = outputDirectory + "OptimizedCode.asm";
 
     // create output directory if it doesn't exist
     system(("mkdir -p " + outputDirectory).c_str());
@@ -68,6 +71,12 @@ int main(int argc, const char* argv[]) {
         cerr << "Error opening assembly code file: " << asmCodeFileName << endl;
         return 1;
     }
+
+    optimizedCodeFile.open(optimizedCodeFileName);
+    if (!optimizedCodeFile.is_open()) {
+        cerr << "Error opening optimized code file: " << optimizedCodeFileName << endl;
+        return 1;
+    }
    
     // ---- Parsing Flow ----
     ANTLRInputStream input(inputFile);
@@ -86,6 +95,8 @@ int main(int argc, const char* argv[]) {
     parserLogFile.close();
     errorFile.close();
     lexLogFile.close();
+    asmCodeFile.close();
+  
     cout << "Parsing completed. Check the output files for details." << endl;
     return 0;
 }
