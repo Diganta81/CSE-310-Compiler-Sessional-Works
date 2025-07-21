@@ -15,6 +15,7 @@ options {
     extern ofstream parserLogFile;
     extern ofstream errorFile;
 	extern std::ofstream asmCodeFile;
+	extern std::ofstream optimizedCodeFile;
 
     extern int syntaxErrorCount;
 	extern vector<pair<string,string>> temp;
@@ -49,10 +50,204 @@ options {
         errorFile.flush();
     }
 
-	void emit(const std::string &line) {
+	void print(const std::string &line) {
         asmCodeFile << line << std::endl;
     }
+
+	void print_output(){
+		print("print_output proc  ;print what is in ax");
+print("    push ax");
+print("    push bx");
+print("    push cx");
+print("    push dx");
+print("    push si");
+print("    lea si,number");
+print("    mov bx,10");
+print("    add si,4");
+print("    cmp ax,0");
+print("    jnge negate");
+print("    print:");
+print("    xor dx,dx");
+print("    div bx");
+print("    mov [si],dl");
+print("    add [si],'0'");
+print("    dec si");
+print("    cmp ax,0");
+print("    jne print");
+print("    inc si");
+print("    lea dx,si");
+print("    mov ah,9");
+print("    int 21h");
+print("    pop si");
+print("    pop dx");
+print("    pop cx");
+print("    pop bx");
+print("    pop ax");
+print("    ret");
+print("    negate:");
+print("    push ax");
+print("    mov ah,2");
+print("    mov dl,'-'");
+print("    int 21h");
+print("    pop ax");
+print("    neg ax");
+print("    jmp print");
+print("print_output endp");
+	}
+
+	void newLine(){
+		print("new_line proc");
+print("    push ax");
+print("    push dx");
+print("    mov ah,2");
+print("    mov dl,0Dh");
+print("    int 21h");
+print("    mov ah,2");
+print("    mov dl,0Ah");
+print("    int 21h");
+print("    pop dx");
+print("    pop ax");
+print("    ret");
+print("new_line endp");
+	}
+
+	string trim(const string &str) {
+    	int first=str.find_first_not_of(" \t\r\n");
+    	int last=str.find_last_not_of(" \t\r\n");
+    	return (first==string::npos) ? "" : str.substr(first,last-first+1);
+	}
 	
+	vector<string> makeTokens(const string &line) {
+    	stringstream ss(line);
+    	string token;
+    	vector<string> tokens;
+    	while (ss >> token) {
+        	token.erase(remove(token.begin(), token.end(), ','), token.end());
+        	tokens.push_back(token); 
+    	}
+    	return tokens;
+	}
+
+	bool RedundantMOV(const string &line1, const string &line2) {
+    	string t1= trim(line1);
+    	string t2= trim(line2);
+    	vector<string> temp1=makeTokens(t1);
+    	vector<string> temp2=makeTokens(t2);
+    	if(temp1.size()==3&&temp2.size()==3 && temp1[0]=="MOV" && temp2[0]=="MOV" && temp1[1]==temp2[2] && temp1[2]==temp2[1]) {
+        	return true;
+    	}
+    	return false;
+	}
+
+	bool RedundantPushPop(const string &line1, const string &line2) {
+        string t1= trim(line1);
+        string t2= trim(line2);
+        vector<string> temp1=makeTokens(t1);
+        vector<string> temp2=makeTokens(t2);
+        if(temp1.size()==2 && temp2.size()==2 && temp1[0]=="PUSH" && temp2[0]=="POP" && temp1[1]==temp2[1]) {
+            return true;
+        }
+        return false;
+    }
+
+	bool NoOp(const string &line) {
+        string t=trim(line);
+        vector<string> tokens=makeTokens(t);
+        if(tokens.size() != 3) {
+            return false;
+        }
+        if(tokens[0] == "ADD" && tokens[1] == "AX" && tokens[2] == "0") {
+            return true;
+        }
+        if(tokens[0] == "SUB" && tokens[1] == "AX" && tokens[2] == "0") {
+            return true;
+        }
+        if(tokens[0] == "MUL" && tokens[1] == "AX" && tokens[2] == "1") {
+            return true;
+        }
+        if(tokens[0] == "DIV" && tokens[1] == "AX" && tokens[2] == "1") {
+            return true;
+        }
+        return false;
+    
+    }
+
+	bool Label(const string &line) {
+        string trimmed = trim(line);
+        if(trimmed[trimmed.size() - 1]==':') {
+            return true;
+        }
+        return false;
+    }
+
+	string replaceLabels(const string line, const unordered_map<string, string>labelMap) {
+        vector<string> tokens=makeTokens(line);
+        if (tokens.empty()) return line;
+        string updatedLine=line;
+        for (auto pair:labelMap) {
+            string olds=pair.first;
+            string news=pair.second;
+            int pos=updatedLine.find(olds);
+            if (pos != string::npos &&(pos == 0 || !isalnum(updatedLine[pos - 1])) &&(pos + olds.length() == updatedLine.length() || !isalnum(updatedLine[pos + olds.length()])))
+            {
+                updatedLine.replace(pos, olds.length(), news);
+            }
+        }
+        return updatedLine;
+    }
+
+	void optimizeCode(){
+		ifstream inputFile("output/Code.asm");
+		
+		vector<string> lines;
+        string line;
+        while (getline(inputFile,line)) {
+            lines.push_back(line);
+        }
+        unordered_map<string, string> labelMap; 
+        vector<string> changedLines;
+        for (int i=0;i<lines.size(); ) {
+            if (Label(lines[i])) {
+                size_t j=i;
+                vector<string> Group;
+                while (j<lines.size() && Label(lines[j])) {
+                    Group.push_back(trim(lines[j]));
+                    j++; 
+                }
+                string l=Group.front();
+                for (int k=1;k<Group.size();k++) {
+                    string oldLabel=Group[k].substr(0,Group[k].length()-1);
+                    string newLabel=l.substr(0,l.length()-1);
+                    labelMap[oldLabel]=newLabel;
+                }
+                changedLines.push_back(l);
+                i = j;
+            } else {
+                changedLines.push_back(lines[i]);
+                i++;
+            }
+        }
+        for (int i=0;i<changedLines.size();i++) {
+            string curr=replaceLabels(changedLines[i],labelMap);
+            if (i+1<changedLines.size()){
+                string next=replaceLabels(changedLines[i+1],labelMap);
+                if (RedundantMOV(curr, next)) {
+                    optimizedCodeFile << curr << endl;
+                    i++;
+                    continue;
+                }
+                if (RedundantPushPop(curr, next)) {
+                    i++;
+                    continue;
+                }
+            }
+            if (NoOp(curr)) {
+                continue;
+            }
+            optimizedCodeFile<< curr << endl;
+        }
+	}
+
 	bool isGlobal = true;
 
 	string value = "";
@@ -77,7 +272,7 @@ start : {
 .STACK 1000H\n\
 .DATA\n\
 NUMBER DB '00000$'\n";
-emit(cont);
+print(cont);
  	} program
 	{
 		symbolTable->printAllScopeTable(parserLogFile);
@@ -85,12 +280,17 @@ emit(cont);
         writeIntoparserLogFile("Total number of lines: " + to_string($program.stop->getLine()));
 		writeIntoparserLogFile("Total number of errors: " + to_string(syntaxErrorCount));
 		newLabel();
-		emit("    ADD SP, " + to_string(spCount * 2));
-		emit("    POP BP");
+		print("    ADD SP, " + to_string(spCount * 2));
+		print("    POP BP");
 		stackCount--;
-		emit("    MOV AX, 4C00H");
-		emit("    INT 21H");
-		emit("main ENDP");
+		print("    MOV AX, 4C00H");
+		print("    INT 21H");
+		print("main ENDP");
+		newLine();
+		print_output();
+		print("END MAIN");
+		optimizeCode();
+		
 		
 	}
 	;
@@ -124,7 +324,7 @@ unit returns [string name_Line]: vd=var_declaration{
 	  }
      | {
 		if(funcCount==0){
-		emit(".CODE");
+		print(".CODE");
 		funcCount++;
 	}
 	 }func_definition {
@@ -148,7 +348,7 @@ func_declaration  returns [string  name_Line]: type_specifier ID LPAREN pl=param
 			sym->returnType = $type_specifier.type;
 			sym->paramCount = $pl.count;
 			$pl.names.clear(); 
-			temp.clear(); // Clear temp to avoid memory leak
+			temp.clear(); 
 		}
 		| ts=type_specifier ID LPAREN RPAREN SEMICOLON{
 			writeIntoparserLogFile("Line " + to_string($ts.start->getLine()) + ": func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON\n");
@@ -163,10 +363,10 @@ func_declaration  returns [string  name_Line]: type_specifier ID LPAREN pl=param
 		;
 		 
 func_definition returns [string name_Line]: ts=type_specifier ID{
-				emit($ID.text + " PROC");
-				emit("    PUSH BP");
+				print($ID.text + " PROC");
+				print("    PUSH BP");
 				stackCount++;
-				emit("    MOV BP, SP");
+				print("    MOV BP, SP");
 } LPAREN pl=parameter_list{
 				symbolTable->insert(parserLogFile, $ID.text,"ID");
 				SymbolInfo *sym = symbolTable->LookUp($ID.text);
@@ -178,10 +378,10 @@ func_definition returns [string name_Line]: ts=type_specifier ID{
 				for (const auto& name : $pl.names) {
 					sym->paramTypes.push_back(name.second);
 					localVariableCount++;
-					emit("    SUB SP, 2");
-					emit("    MOV AX, [BP+" + to_string(($pl.names.size()-i) * 2 + 2) + "]");
+					print("    SUB SP, 2");
+					print("    MOV AX, [BP+" + to_string(($pl.names.size()-i) * 2 + 2) + "]");
 					
-					emit("	MOV [BP-" + to_string(($pl.names.size()-i) * 2) + "], AX");
+					print("	MOV [BP-" + to_string(($pl.names.size()-i) * 2) + "], AX");
 					i++;
 					count++;
 				}
@@ -195,11 +395,11 @@ func_definition returns [string name_Line]: ts=type_specifier ID{
 			
 			$name_Line = $ts.text + " " + $ID.text + "(" + $pl.name_Line + ")" + $cs.name_Line;
 			newLabel();
-			emit("    ADD SP, " + to_string((localVariableCount+spCount) * 2) );
-			emit("    POP BP");
+			print("    ADD SP, " + to_string((localVariableCount+spCount) * 2) );
+			print("    POP BP");
 			stackCount--;
-			emit("    RET");
-			emit($ID.text + " ENDP");
+			print("    RET");
+			print($ID.text + " ENDP");
 			localVariableCount = 0;
 			count=0;
 			spCount = 0;
@@ -208,20 +408,20 @@ func_definition returns [string name_Line]: ts=type_specifier ID{
 		| ts=type_specifier ID{
 		if ($ID.text == "main") {
             
-            emit("main PROC");
-            emit("    MOV AX, @DATA");
-            emit("    MOV DS, AX");
-            emit("    PUSH BP");
+            print("main PROC");
+            print("    MOV AX, @DATA");
+            print("    MOV DS, AX");
+            print("    PUSH BP");
 			stackCount++;
-            emit("    MOV BP, SP");
+            print("    MOV BP, SP");
 			Main = 1;
 			
         }
 		else{
-			emit($ID.text + " PROC");
-			emit("    PUSH BP");
+			print($ID.text + " PROC");
+			print("    PUSH BP");
 			stackCount++;
-			emit("    MOV BP, SP");
+			print("    MOV BP, SP");
 		}
 		}
 		 LPAREN{
@@ -247,11 +447,11 @@ func_definition returns [string name_Line]: ts=type_specifier ID{
 			$name_Line = $ts.text + " " + $ID.text + "()" + $cs.name_Line;
 			if($ID.text != "main"){
 				newLabel();
-				emit("    ADD SP, " + to_string((localVariableCount+spCount) * 2) );
-				emit("    POP BP");
+				print("    ADD SP, " + to_string((localVariableCount+spCount) * 2) );
+				print("    POP BP");
 				stackCount--;
-				emit("    RET");
-				emit($ID.text + " ENDP");
+				print("    RET");
+				print($ID.text + " ENDP");
 				localVariableCount = 0;
 				
 			}
@@ -348,7 +548,7 @@ var_declaration returns [string name_Line]
 			for(const auto& name : $dl.names){
 				if(name.second=="array") {
 					string size = sizeofArray[0];
-					emit(name.first + " DW " + size + " DUP 0000H");
+					print(name.first + " DW " + size + " DUP 0000H");
 					symbolTable->insert(parserLogFile,name.first, name.second);
 					SymbolInfo *sym=symbolTable->LookUp(name.first);
 					sym->isArray=true;
@@ -361,7 +561,7 @@ var_declaration returns [string name_Line]
 					SymbolInfo *sym=symbolTable->LookUp(name.first);
 					sym->Idtype =$ts.type;
 					sym->isGlobal = true;
-					emit(name.first + " DW " + "1 "  +"DUP " + "0000H ");
+					print(name.first + " DW " + "1 "  +"DUP " + "0000H ");
 				}
 			}
 			
@@ -373,7 +573,7 @@ var_declaration returns [string name_Line]
 				SymbolInfo *sym=symbolTable->LookUp(name.first);
 				sym->isArray=true;
 				sym->Idtype=$ts.type;
-				emit("    SUB SP, " + to_string(stoi(sizeofArray[0]) * 2));
+				print("    SUB SP, " + to_string(stoi(sizeofArray[0]) * 2));
 				spCount += stoi(sizeofArray[0]);
 				sizeofArray.erase(sizeofArray.begin());
 			
@@ -382,7 +582,7 @@ var_declaration returns [string name_Line]
 				symbolTable->insert(parserLogFile,name.first,name.second);
 				SymbolInfo *sym=symbolTable->LookUp(name.first);
 				sym->Idtype=$ts.type;
-				emit("    SUB SP, 2");
+				print("    SUB SP, 2");
 				spCount++;
 				
 				sym->offset = (spCount+count) * 2; // Assuming each variable takes 2 bytes
@@ -509,33 +709,33 @@ statement returns [string name_Line]: var_declaration {
 		string label4=to_string(label+1);
 		label++;
 	  } LPAREN expression_statement{
-		emit("L" + label1 + ":");
+		print("L" + label1 + ":");
 	  } expression_statement{
-		emit("    POP AX");
+		print("    POP AX");
 		stackCount--;
-		emit("    CMP AX, 0");
-		emit("    JE L" + label4);
-		emit("    JMP L" + label3);
-		emit("L" + label2 + ":");
+		print("    CMP AX, 0");
+		print("    JE L" + label4);
+		print("    JMP L" + label3);
+		print("L" + label2 + ":");
 	  } expression{
 		
-		emit("    JMP L" + label1);
-		emit("L" + label3 + ":");
+		print("    JMP L" + label1);
+		print("L" + label3 + ":");
 	  } RPAREN statement {
 			writeIntoparserLogFile("Line " + to_string($statement.stop->getLine()) + ": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement\n");
 			writeIntoparserLogFile("for(" + $expression_statement.text + $expression_statement.text + $expression.text + ") {\n" + $statement.name_Line + "\n}");
 			$name_Line = "for(" + $expression_statement.text + $expression_statement.text + $expression.text + ") {\n" + $statement.name_Line + "\n}";
-			emit("    JMP L" + label2);
-			emit("L" + label4 + ":");
+			print("    JMP L" + label2);
+			print("L" + label4 + ":");
 		  }
 	  |IF LPAREN expression RPAREN{
-			emit("    POP AX");
+			print("    POP AX");
 			stackCount--;
-			emit("    CMP AX, 1");
+			print("    CMP AX, 1");
 			
 			string elseLabel =to_string(label+1);
 			label++;
-			emit("    JNE L"+elseLabel);
+			print("    JNE L"+elseLabel);
 			
 			
 	  } statement {
@@ -543,26 +743,26 @@ statement returns [string name_Line]: var_declaration {
 			writeIntoparserLogFile("if(" + $expression.text + ") {\n" + $statement.name_Line + "\n}");
 			$name_Line = "if(" + $expression.text + ") {\n" + $statement.name_Line + "\n}";
 			
-			emit("L"+elseLabel+":");
+			print("L"+elseLabel+":");
 		  }
 	  | IF LPAREN expression RPAREN{
-			emit("    POP AX");
+			print("    POP AX");
 			stackCount--;
-			emit("    CMP AX, 1");
+			print("    CMP AX, 1");
 			
 			string elseLabel =to_string(label+1);
 			label++;
 			string endLabel = to_string(label+1);
 			label++;
-			emit("    JNE L"+elseLabel);
+			print("    JNE L"+elseLabel);
 	  } statement{
-		emit("    JMP L"+endLabel);
-		emit("L"+elseLabel+":");
+		print("    JMP L"+endLabel);
+		print("L"+elseLabel+":");
 	  } ELSE s=statement {
 			writeIntoparserLogFile("Line " + to_string($s.stop->getLine()) + ": statement : IF LPAREN expression RPAREN statement ELSE statement\n");
 			writeIntoparserLogFile("if(" + $expression.text + ") {\n" + $statement.name_Line + "\n} else {\n" + $s.name_Line + "\n}");
 			$name_Line = "if(" + $expression.text + ") {\n" + $statement.name_Line + "\n} else {\n" + $s.name_Line + "\n}";
-			emit("L"+endLabel+":");
+			print("L"+endLabel+":");
 
 		  }
 	  | WHILE{
@@ -571,24 +771,24 @@ statement returns [string name_Line]: var_declaration {
 			string label2=to_string(label+1);
 			label++;
 	  } LPAREN{
-		emit("L" + label1 + ":");
+		print("L" + label1 + ":");
 	  } expression{
-			//emit(to_string(stackCount));
+			//print(to_string(stackCount));
 			if(stackCount==1){
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
-			emit("    POP AX");
+			print("    POP AX");
 			stackCount--;
-			emit("    CMP AX, 0");
-			emit("    JE L" + label2);
+			print("    CMP AX, 0");
+			print("    JE L" + label2);
 	  } RPAREN statement {
 			writeIntoparserLogFile("Line " + to_string($statement.stop->getLine()) + ": statement : WHILE LPAREN expression RPAREN statement\n");
 			writeIntoparserLogFile("while(" + $expression.text + ") {\n" + $statement.name_Line + "\n}");
 			$name_Line = "while(" + $expression.text + ") {\n" + $statement.name_Line + "\n}";
 			
-			emit("    JMP L" + label1);
-			emit("L" + label2 + ":");
+			print("    JMP L" + label1);
+			print("L" + label2 + ":");
 		  }
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON{
 			writeIntoparserLogFile("Line " + to_string($ID->getLine()) + ": statement : PRINTLN LPAREN ID RPAREN SEMICOLON\n");
@@ -598,17 +798,17 @@ statement returns [string name_Line]: var_declaration {
 			SymbolInfo *sym = symbolTable->LookUp($ID.text);
 			if(sym->isGlobal) {
 				newLabel();
-				emit("    MOV AX, " + $ID.text);
-				emit("    CALL print_output");
-				emit("    CALL new_line");
+				print("    MOV AX, " + $ID.text);
+				print("    CALL print_output");
+				print("    CALL new_line");
 				
 			}
 
 			else{
 				newLabel();
-				emit("    MOV AX, [BP - " + to_string(sym->offset) + "]");
-				emit("    CALL print_output");
-				emit("    CALL new_line");
+				print("    MOV AX, [BP - " + to_string(sym->offset) + "]");
+				print("    CALL print_output");
+				print("    CALL new_line");
 				
 			}
 		  }
@@ -616,13 +816,13 @@ statement returns [string name_Line]: var_declaration {
 			writeIntoparserLogFile("Line " + to_string($e.stop->getLine()) + ": statement : RETURN expression SEMICOLON\n");
 			writeIntoparserLogFile("return " + $e.text + ";\n");
 			$name_Line = "return " + $e.text + ";\n";
-			emit("    POP AX");
+			print("    POP AX");
 			stackCount--;
 			if(localVariableCount!=0 ){
-				emit("    ADD SP, " + to_string((localVariableCount+spCount) * 2) );
-				emit("    POP BP");
+				print("    ADD SP, " + to_string((localVariableCount+spCount) * 2) );
+				print("    POP BP");
 				stackCount--;
-				emit("    RET");
+				print("    RET");
 			}
 			//stackCount--;
 			//spCount = 0;
@@ -675,20 +875,20 @@ expression returns [string name_line,string type]: logic_expression {
 					string varName = $variable.text.substr(0, pos);
 					SymbolInfo *sym = symbolTable->LookUp(varName);
 					if (sym->isGlobal) {
-						emit("    POP AX");
-						emit("    POP BX");
-						emit("    SHL BX, 1");
-						emit("    MOV "+varName+"[BX], AX");
+						print("    POP AX");
+						print("    POP BX");
+						print("    SHL BX, 1");
+						print("    MOV "+varName+"[BX], AX"+"\t\t;Line:"+to_string($logic_expression.start->getLine()));
 					}
 					else{
 						string index = $variable.text.substr(pos + 1, $variable.text.find(']') - pos - 1);
 						
-						emit("    POP AX");
-						emit("    POP BX");
-						emit("    SHL BX, 1");
-						emit("    SUB BX, "+to_string((spCount)*2));
-						emit("    MOV SI, BX");
-						emit("    MOV [BP+SI], AX");
+						print("    POP AX");
+						print("    POP BX");
+						print("    SHL BX, 1");
+						print("    SUB BX, "+to_string((spCount)*2));
+						print("    MOV SI, BX\t\t;Line:"+to_string($logic_expression.start->getLine()));
+						print("    MOV [BP+SI], AX");
 					}
 				}
 				else{
@@ -696,14 +896,14 @@ expression returns [string name_line,string type]: logic_expression {
 				if(sym->isGlobal) {
     				value = hold.top();
     				hold.pop();
-					emit("    POP AX");
+					print("    POP AX");
 					stackCount--;
-    				emit("    MOV " + $variable.text + ", AX");
+    				print("    MOV " + $variable.text + ", AX"+"\t\t;Line:"+to_string($logic_expression.start->getLine()));
 				}
 				else if(!sym->isGlobal){
-					emit("    POP AX");
+					print("    POP AX");
 					stackCount--;
-					emit("    MOV [BP-" + to_string(sym->offset) + "], AX");
+					print("    MOV [BP-" + to_string(sym->offset) + "], AX"+"\t\t;Line:"+to_string($logic_expression.start->getLine()));
 				}
 				}
 			}
@@ -723,42 +923,42 @@ logic_expression returns [string name_line]: rel_expression {
 			writeIntoparserLogFile($re.text  + $LOGICOP.text  + $ree.text + "\n");
 			$name_line = $re.name_line + " " + $LOGICOP.text + " " + $ree.name_line;
 			if($LOGICOP.text=="&&") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");
+				print("    MOV DX, AX\t\t;Line:"+to_string($ree.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CMP AX, 0");
-				emit("    JE L" + to_string(label+2));
-				emit("    CMP DX, 0");
-				emit("    JE L" + to_string(label+2));
+				print("    CMP AX, 0");
+				print("    JE L" + to_string(label+2));
+				print("    CMP DX, 0");
+				print("    JE L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($ree.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($ree.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if($LOGICOP.text=="||") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");	
+				print("    MOV DX, AX\t\t;Line:"+to_string($ree.start->getLine()));
+				print("    POP AX");	
 				stackCount--;	
-				emit("    CMP AX, 1");
-				emit("    JE L" + to_string(label+1));
-				emit("    CMP DX, 1");
-				emit("    JE L" + to_string(label+1));
-				emit("    JMP L" + to_string(label+2));
+				print("    CMP AX, 1");
+				print("    JE L" + to_string(label+1));
+				print("    CMP DX, 1");
+				print("    JE L" + to_string(label+1));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($ree.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($ree.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 		}
@@ -776,111 +976,111 @@ rel_expression	returns [string name_line]: simple_expression {
 			writeIntoparserLogFile($se.text + " " + $RELOP.text + " " + $sie.text + "\n");
 			$name_line = $se.name_line + " " + $RELOP.text + " " + $sie.name_line;
 			if($RELOP.text=="<=") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");
+				print("    MOV DX, AX\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CMP AX, DX");
-				emit("    JLE L" + to_string(label+1));
-				emit("    JMP L" + to_string(label+2));
+				print("    CMP AX, DX");
+				print("    JLE L" + to_string(label+1));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($simple_expression.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 		  	}	
 			else if($RELOP.text=="<") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");
+				print("    MOV DX, AX\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CMP AX, DX");
-				emit("    JL L" + to_string(label+1));
-				emit("    JMP L" + to_string(label+2));
+				print("    CMP AX, DX");
+				print("    JL L" + to_string(label+1));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($simple_expression.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if($RELOP.text==">=") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");
+				print("    MOV DX, AX\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CMP AX, DX");
-				emit("    JGE L" + to_string(label+1));
-				emit("    JMP L" + to_string(label+2));
+				print("    CMP AX, DX");
+				print("    JGE L" + to_string(label+1));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($simple_expression.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if($RELOP.text==">") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");
+				print("    MOV DX, AX\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CMP AX, DX");
-				emit("    JG L" + to_string(label+1));
-				emit("    JMP L" + to_string(label+2));
+				print("    CMP AX, DX");
+				print("    JG L" + to_string(label+1));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($simple_expression.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if($RELOP.text=="!=") {
-				 emit("    POP AX");
+				 print("    POP AX");
 				 stackCount--;
-				 emit("    MOV DX, AX");
-				 emit("    POP AX");
+				 print("    MOV DX, AX\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				 print("    POP AX");
 				 stackCount--;
-				 emit("    CMP AX, DX");
-				 emit("    JNE L" + to_string(label+1));
-				 emit("    JMP L" + to_string(label+2));
+				 print("    CMP AX, DX");
+				 print("    JNE L" + to_string(label+1));
+				 print("    JMP L" + to_string(label+2));
 				 newLabel();
-				 emit("    MOV AX, 1");
-				 emit("    JMP L" + to_string(label+2));
+				 print("    MOV AX, 1\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				 print("    JMP L" + to_string(label+2));
 				 newLabel();
-				 emit("    MOV AX, 0");
+				 print("    MOV AX, 0\t\t;Line:"+to_string($simple_expression.start->getLine()));
 				 newLabel();
-				 emit("    PUSH AX");
+				 print("    PUSH AX");
 				 stackCount++;	
 			}
 			else if($RELOP.text=="==") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV DX, AX");
-				emit("    POP AX");
+				print("    MOV DX, AX\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CMP AX, DX");
-				emit("    JE L" + to_string(label+1));
-				emit("    JMP L" + to_string(label+2));
+				print("    CMP AX, DX");
+				print("    JE L" + to_string(label+1));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 1");
-				emit("    JMP L" + to_string(label+2));
+				print("    MOV AX, 1\t\t;Line:"+to_string($simple_expression.start->getLine()));
+				print("    JMP L" + to_string(label+2));
 				newLabel();
-				emit("    MOV AX, 0");
+				print("    MOV AX, 0\t\t;Line:"+to_string($simple_expression.start->getLine()));
 				newLabel();
-				emit("    PUSH AX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 		}
@@ -898,21 +1098,21 @@ simple_expression returns [string name_line]: term {
 			writeIntoparserLogFile("Line " + to_string($t.start->getLine()) + ": simple_expression : simple_expression ADDOP term\n");
 			writeIntoparserLogFile($se.text  + $ADDOP.text + $t.text + "\n");
 			$name_line = $se.name_line  + $ADDOP.text  + $t.name_line;
-			emit("    POP AX");
+			print("    POP AX");
 			stackCount--;
-			emit("    MOV DX, AX");
-			emit("    POP AX");
+			print("    MOV DX, AX\t\t;Line:"+to_string($t.start->getLine()));
+			print("    POP AX");
 			stackCount--;
 			if($ADDOP.text=="+") {
-				emit("    ADD AX, DX");
-				emit("    PUSH AX");
+				print("    ADD AX, DX\t\t;Line:"+to_string($t.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 				value1+=value2;
 				hold.push(to_string(value1));
 			}
 			else if($ADDOP.text=="-") {
-				emit("    SUB AX, DX");
-				emit("    PUSH AX");
+				print("    SUB AX, DX\t\t;Line:"+to_string($t.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 				value1-=value2;
 				hold.push(to_string(value1));
@@ -931,37 +1131,37 @@ term returns [string name_line] :	unary_expression {
 			writeIntoparserLogFile($t.text + $MULOP.text  + $unary_expression.text + "\n");
 
 			if($MULOP.text=="*") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV CX,AX");
-				emit("    POP AX");
+				print("    MOV CX,AX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CWD");
-				emit("    MUL CX");
-				emit("    PUSH AX");
+				print("    CWD");
+				print("    MUL CX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if($MULOP.text=="/") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV CX,AX");
-				emit("    POP AX");
+				print("    MOV CX,AX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CWD");
-				emit("    DIV CX");
-				emit("    PUSH AX");
+				print("    CWD");
+				print("    DIV CX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if($MULOP.text=="%") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    MOV CX,AX");
-				emit("    POP AX");
+				print("    MOV CX,AX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    POP AX");
 				stackCount--;
-				emit("    CWD");
-				emit("    DIV CX");
-				emit("    MOV AX, DX");
-				emit("    PUSH AX");
+				print("    CWD");
+				print("    DIV CX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    MOV AX, DX");
+				print("    PUSH AX");
 				stackCount++;
 			}
 	 };
@@ -971,10 +1171,10 @@ unary_expression returns [string name_line] : ADDOP unary_expression {
 			writeIntoparserLogFile($ADDOP.text + $unary_expression.text + "\n");
 			$name_line = $ADDOP.text + $unary_expression.text;
 			if($ADDOP.text=="-") {
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
-				emit("    NEG AX");
-				emit("    PUSH AX");
+				print("    NEG AX\t\t;Line:"+to_string($unary_expression.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 			}
 
@@ -1006,26 +1206,26 @@ factor returns [string name_line]	: variable {
 				SymbolInfo *sym = symbolTable->LookUp(varName);
 				if(sym->isArray) {
 					if(sym->isGlobal) {
-						//emit("    MOV AX, " + varName);
-						emit("    POP BX");
+						//print("    MOV AX, " + varName);
+						print("    POP BX");
 						stackCount--;
-						emit("    SHL BX, 1");
+						print("    SHL BX, 1");
 						
-						emit("    MOV AX, "+varName+ "[BX]");
-						emit("    PUSH AX");
+						print("    MOV AX, "+varName+ "[BX]\t\t;Line:"+to_string($variable.start->getLine()));
+						print("    PUSH AX");
 						stackCount++;
 					}
 					else{
 						string index = $variable.text.substr(pos + 1, $variable.text.find(']') - pos - 1);
-						//emit("    MOV AX, [BP - " + to_string(sym->offset) + "]");
-						emit("    POP BX");
+						//print("    MOV AX, [BP - " + to_string(sym->offset) + "]");
+						print("    POP BX");
 						stackCount--;
-						emit("    SHL BX, 1");
-						emit("    SUB BX, "+ to_string((spCount) * 2));
-						//emit("    MOV AX, [AX]");
-						emit("    MOV SI, BX");
-						emit("    MOV AX, [BP + SI]");
-						emit("    PUSH AX");
+						print("    SHL BX, 1");
+						print("    SUB BX, "+ to_string((spCount) * 2));
+						//print("    MOV AX, [AX]");
+						print("    MOV SI, BX\t\t;Line:"+to_string($variable.start->getLine()));
+						print("    MOV AX, [BP + SI]");
+						print("    PUSH AX");
 						stackCount++;
 					}
 				}
@@ -1034,13 +1234,13 @@ factor returns [string name_line]	: variable {
 			else{
 			SymbolInfo *sym=symbolTable->LookUp($variable.text);
 			if(sym->isGlobal){
-				emit("    MOV AX, " + $variable.text);
-				emit("    PUSH AX");
+				print("    MOV AX, " + $variable.text+ "\t\t;Line:"+to_string($variable.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 			}
 			else if(!sym->isGlobal){
-				emit("    MOV AX, [BP - " + to_string(sym->offset) + "]");
-				emit("    PUSH AX");
+				print("    MOV AX, [BP - " + to_string(sym->offset) + "]\t\t;Line:"+to_string($variable.start->getLine()));
+				print("    PUSH AX");
 				stackCount++;
 			}
 			}
@@ -1056,24 +1256,24 @@ factor returns [string name_line]	: variable {
 			// 		string temp=sym->paramTypes[i];
 			// 		SymbolInfo *sym1 = symbolTable->LookUp(temp);
 			// 		if(sym1->isGlobal) {
-			// 			emit("    MOV AX, " + temp);
-			// 			emit("    PUSH AX");
+			// 			print("    MOV AX, " + temp);
+			// 			print("    PUSH AX");
 			// 		}
 			// 		else if(!sym1->isGlobal) {
-			// 			emit("    MOV AX, [BP - " + to_string(sym1->offset) + "]");
-			// 			emit("    PUSH AX");
+			// 			print("    MOV AX, [BP - " + to_string(sym1->offset) + "]");
+			// 			print("    PUSH AX");
 			// 		}
 			// 		count++;
 			// 	}
 
 			// }
-			emit("    CALL " + $ID.text);
-			emit("    ADD SP, " + to_string(sym->paramCount * 2));
+			print("    CALL " + $ID.text);
+			print("    ADD SP, " + to_string(sym->paramCount * 2));
 
-			emit("    PUSH AX");
+			print("    PUSH AX");
 			stackCount++;
 			if(sym->returnType == "void"){
-				emit("    POP AX");
+				print("    POP AX");
 				stackCount--;
 			}
 	}
@@ -1087,8 +1287,8 @@ factor returns [string name_line]	: variable {
 			writeIntoparserLogFile($CONST_INT.text + "\n");
 			$name_line = $CONST_INT.text;
 			hold.push($CONST_INT.text);
-			emit("    MOV AX, " + $CONST_INT.text);
-			emit("    PUSH AX");
+			print("    MOV AX, " + $CONST_INT.text+ "\t\t;Line:"+to_string($CONST_INT->getLine()));
+			print("    PUSH AX");
 			stackCount++;
 		  }
 	| CONST_FLOAT {
@@ -1110,28 +1310,28 @@ factor returns [string name_line]	: variable {
 				SymbolInfo *sym = symbolTable->LookUp(varName);
 				if(sym->isArray) {
 					if(sym->isGlobal) {
-						//emit("    MOV AX, " + varName);
-						emit("    POP BX");
+						//print("    MOV AX, " + varName);
+						print("    POP BX");
 						stackCount--;
-						emit("    SHL BX, 1");
+						print("    SHL BX, 1");
 						
-						emit("    MOV AX, "+varName+ "[BX]");
-						emit("    INC AX");
-						emit("    MOV "+varName+ "[BX], AX");
-						emit("    PUSH AX");
+						print("    MOV AX, "+varName+ "[BX]");
+						print("    INC AX");
+						print("    MOV "+varName+ "[BX], AX");
+						print("    PUSH AX");
 						stackCount++;
 					}
 					else{
 						string index = $variable.text.substr(pos + 1, $variable.text.find(']') - pos - 1);
-						//emit("    MOV AX, [BP - " + to_string(sym->offset) + "]");
-						emit("    POP BX");
+						//print("    MOV AX, [BP - " + to_string(sym->offset) + "]");
+						print("    POP BX");
 						stackCount--;
-						emit("    SHL BX, 1");
-						emit("    SUB BX, "+ to_string((spCount) * 2));
-						//emit("    MOV AX, [AX]");
-						emit("    MOV SI, BX");
-						emit("    MOV AX, [BP + SI]");
-						emit("    PUSH AX");
+						print("    SHL BX, 1");
+						print("    SUB BX, "+ to_string((spCount) * 2));
+						//print("    MOV AX, [AX]");
+						print("    MOV SI, BX");
+						print("    MOV AX, [BP + SI]");
+						print("    PUSH AX");
 						stackCount++;
 					}
 				}
@@ -1140,23 +1340,23 @@ factor returns [string name_line]	: variable {
 			else{
 		SymbolInfo *sym = symbolTable->LookUp($variable.text);
 		if(sym->isGlobal) {
-			emit("    MOV AX, " + $variable.text);
-			emit("    PUSH AX");
+			print("    MOV AX, " + $variable.text);
+			print("    PUSH AX");
 			stackCount++;
-			emit("    INC AX");
-			emit("    MOV " + $variable.text + ", AX");	
-			emit("    POP AX");
+			print("    INC AX");
+			print("    MOV " + $variable.text + ", AX");	
+			print("    POP AX");
 			stackCount--;
 			
 			
 		}
 		else if(!sym->isGlobal) {
-			emit("    MOV AX, [BP - " + to_string(sym->offset) + "]");
-			emit("    PUSH AX");
+			print("    MOV AX, [BP - " + to_string(sym->offset) + "]");
+			print("    PUSH AX");
 			stackCount++;
-			emit("    INC AX");
-			emit("    MOV [BP - " + to_string(sym->offset) + "], AX");
-			emit("    POP AX");
+			print("    INC AX");
+			print("    MOV [BP - " + to_string(sym->offset) + "], AX");
+			print("    POP AX");
 			stackCount--;
 			
 			
@@ -1170,21 +1370,21 @@ factor returns [string name_line]	: variable {
 		$name_line = $variable.text + "--";
 		SymbolInfo *sym = symbolTable->LookUp($variable.text);
 		if(sym->isGlobal) {
-			emit("    MOV AX, " + $variable.text);
-			emit("    PUSH AX");
+			print("    MOV AX, " + $variable.text);
+			print("    PUSH AX");
 			stackCount++;
-			emit("    DEC AX");
-			emit("    MOV " + $variable.text + ", AX");	
-			emit("    POP AX");
+			print("    DEC AX");
+			print("    MOV " + $variable.text + ", AX");	
+			print("    POP AX");
 			stackCount--;
 		}
 		else if(!sym->isGlobal) {
-			emit("    MOV AX, [BP - " + to_string(sym->offset) + "]");
-			emit("    PUSH AX");
+			print("    MOV AX, [BP - " + to_string(sym->offset) + "]");
+			print("    PUSH AX");
 			stackCount++;
-			emit("    DEC AX");
-			emit("    MOV [BP - " + to_string(sym->offset) + "], AX");
-			emit("    POP AX");
+			print("    DEC AX");
+			print("    MOV [BP - " + to_string(sym->offset) + "], AX");
+			print("    POP AX");
 			stackCount--;
 		}
 

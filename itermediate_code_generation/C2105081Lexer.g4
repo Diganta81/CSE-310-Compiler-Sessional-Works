@@ -86,7 +86,8 @@ IF       : 'if' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": 
 ELSE     : 'else' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <ELSE> Lexeme " + getText()); };
 FOR      : 'for' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <FOR> Lexeme " + getText()); };
 WHILE    : 'while' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <WHILE> Lexeme " + getText()); };
-PRINTLN  : 'printf' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <PRINTLN> Lexeme " + getText()); };
+TIMES    : 'times' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <TIMES> Lexeme " + getText()); };
+PRINTLN  : 'println' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <PRINTLN> Lexeme " + getText()); };
 RETURN   : 'return' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <RETURN> Lexeme " + getText()); };
 INT      : 'int' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <INT> Lexeme " + getText()); };
 FLOAT    : 'float' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <FLOAT> Lexeme " + getText()); };
@@ -100,6 +101,8 @@ LTHIRD   : '[' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": T
 RTHIRD   : ']' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <RTHIRD> Lexeme " + getText()); };
 SEMICOLON: ';' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <SEMICOLON> Lexeme " + getText()); };
 COMMA    : ',' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <COMMA> Lexeme " + getText()); };
+COLON   : ':' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <COLON> Lexeme " + getText()); };
+QUESTION : '?' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <QUESTION> Lexeme " + getText()); };
 
 
 ADDOP    : [+\-] { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <ADDOP> Lexeme " + getText()); };
