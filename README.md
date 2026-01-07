@@ -32,10 +32,11 @@ Each component is implemented as a separate module with comprehensive logging an
 
 ```
 CSE-310-Compiler-Sessional-Works/
-├── SymbolTable/              # Symbol table implementation
-├── lexicalAnalyzer/          # Lexical analyzer using Flex
-├── syntax_semantic_analyzer/ # Parser and semantic analyzer using ANTLR4
-└── itermediate_code_generation/ # Code generation phase
+├── SymbolTable/                     # Symbol table implementation
+├── lexicalAnalyzer/                 # Lexical analyzer using Flex
+├── syntax_semantic_analyzer/        # Parser and semantic analyzer using ANTLR4
+└── itermediate_code_generation/     # Intermediate code generation phase
+                                     # (note: directory name has typo, kept for consistency)
 ```
 
 ## Components
@@ -147,7 +148,7 @@ This component performs syntax analysis (parsing) and semantic analysis using AN
 
 ### 4. Intermediate Code Generation
 
-**Location**: `itermediate_code_generation/`
+**Location**: `itermediate_code_generation/` *(Note: directory name contains typo)*
 
 The final phase generates assembly code for the 8086 architecture from the validated parse tree.
 
@@ -330,7 +331,7 @@ syntax_semantic_analyzer/
 ### Intermediate Code Generation Files
 
 ```
-itermediate_code_generation/
+itermediate_code_generation/  # Note: directory name contains typo
 ├── C2105081Lexer.g4              # Extended lexer grammar
 ├── C2105081Parser.g4             # Parser with code generation
 ├── 2105081_main.cpp              # Main driver
